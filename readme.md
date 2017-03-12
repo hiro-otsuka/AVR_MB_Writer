@@ -1,5 +1,5 @@
 # AVR_MB_Writer
-このプログラムは、AVR_MusicBox（https://github.com/hiro-otsuka/AVR_MusicBox/）用のEEPROM・実行モジュールライタGUIです。
+このプログラムは、[AVR_MusicBox](https://github.com/hiro-otsuka/AVR_MusicBox/) 用のEEPROM・実行モジュールライタGUIです。
 AVR_MusicBox とともに公開している [AVR_MB_Writer.ino](https://github.com/hiro-otsuka/AVR_MusicBox/blob/master/tools/AVR_MB_Writer.ino)
 に接続して使用することにより、EEPROMへのファイル書き込み・削除およびATTiny85のFuse設定、実行ファイル書き込みを
 簡単な操作で実行できます。
