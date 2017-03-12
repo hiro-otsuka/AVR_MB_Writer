@@ -1,8 +1,8 @@
 # AVR_MB_Writer
 このプログラムは、[AVR_MusicBox](https://github.com/hiro-otsuka/AVR_MusicBox/) 用のEEPROM・実行モジュールライタGUIです。
 AVR_MusicBox とともに公開している [AVR_MB_Writer.ino](https://github.com/hiro-otsuka/AVR_MusicBox/blob/master/tools/AVR_MB_Writer.ino)
-に接続して使用することにより、EEPROMへのファイル書き込み・削除およびATTiny85のFuse設定、実行ファイル書き込みを
-簡単な操作で実行できます。
+にシリアルポート経由で接続して使用することにより、EEPROMへのファイル書き込み・削除およびATTiny85のFuse設定、実行ファイル書き込みを
+簡単なGUI操作で実行できます。
 
 # 作者
 (c) 2017 大塚ヒロ <otsuk atmark purple.plala.or.jp>  
@@ -20,11 +20,11 @@ AVR_MusicBox とともに公開している [AVR_MB_Writer.ino](https://github.c
  表示されたSerialポート一覧から接続先を選択できます。
 
 * Connect  
- 選択したSerialポートに接続します
+ 選択したSerialポートに接続します。
 
 * BANK  
  接続したSerialポートに接続されている AVR_MusicBoxの EEPROMバンク一覧を表示します。
- 表示されたバンク一覧を選択することで対象を切り替えることができます。
+ バンク一覧からバンク番号を選択することで操作対象を切り替えることができます。
 
 * Files  
  選択したBANKからファイルの一覧を取得し、リストに表示します。
@@ -33,14 +33,18 @@ AVR_MusicBox とともに公開している [AVR_MB_Writer.ino](https://github.c
  ファイルの一覧で選択されているEEPROMアドレスを、Addr: に入力します。
  リストの項目を選択することで Addr: に自動入力されるので、通常は使用する必要はありません。
 
+* Addr:  
+ Write や Delete の操作を行う対象アドレスです。
+ ファイルの一覧からファイルを選択することで自動的に更新されるため、通常は修正する必要はありません。
+
 * MML File:  
  MML ファイルを選択します。
 
 * MML2BIN  
  MML2BINツールを使って、MMLファイルをバイナリに変換します。
  エラーや実行結果は、ウィンドウ下部のコンソールに表示されます。
- MML2BINの場所は、File -> Settings メニュー から設定できます。
- バイナリへの変換に成功すると、バイナリファイル名が自動的に Local File: に入力されます。
+ MML2BINツールのPATHは、File -> Settings メニュー から設定できます。
+ バイナリへの変換に成功すると、自動的にバイナリファイル名が Local File: に入力されます。
 
 * Edit  
  MMLファイルをエディタで開きます。
@@ -51,7 +55,7 @@ AVR_MusicBox とともに公開している [AVR_MB_Writer.ino](https://github.c
  標準では、WAVファイルまたはBINファイルが指定可能です。
 
 * Write!(EEPROM)  
- Local File に指定したファイルを EEPROM に書き込みます。
+ Local File: に指定したファイルを EEPROM に書き込みます。
 
 * Delete!  
  ファイル一覧で選択したファイルを削除します。
@@ -73,7 +77,7 @@ AVR_MusicBox とともに公開している [AVR_MB_Writer.ino](https://github.c
   RST Disable ... RSTピンを無効（I/Oとして使用可能）に設定します。
 
 * Write!(ELF)  
- ATTiny85 に ELF ファイルを書き込みます。
+ ATTiny ELF: に指定したファイルを ATTiny85 に書き込みます。
 
 # 実装例  
  [AVR_MusicBoxの回路例](https://github.com/hiro-otsuka/AVR_MusicBox/tree/master/circuits) を参照。
