@@ -1,6 +1,6 @@
 # AVR_MB_Writer
-このプログラムは、AVR_MusicBox(https://github.com/hiro-otsuka/AVR_MusicBox)用のEEPROM・実行モジュールライタGUIです。
-AVR_MusicBox とともに公開している [AVR_MB_Writer.ino](../AVR_MusicBox/tools/AVR_MB_Writer.ino)
+このプログラムは、AVR_MusicBox（https://github.com/hiro-otsuka/AVR_MusicBox）用のEEPROM・実行モジュールライタGUIです。
+AVR_MusicBox とともに公開している [AVR_MB_Writer.ino](../AVR_MusicBox/blob/master/tools/AVR_MB_Writer.ino)
 に接続して使用することにより、EEPROMへのファイル書き込み・削除およびATTiny85のFuse設定、実行ファイル書き込みを
 簡単な操作で実行できます。
 
@@ -76,7 +76,7 @@ AVR_MusicBox とともに公開している [AVR_MB_Writer.ino](../AVR_MusicBox/
  ATTiny85 に ELF ファイルを書き込みます。
 
 # 実装例  
- [AVR_MusicBox](../AVR_MusicBox) の回路例を参照。
+ [AVR_MusicBoxの回路例](../AVR_MusicBox/tree/master/circuits) を参照。
 
 # 謝辞
 本プログラムの試作段階で参考にさせていただいた、Qt や AVRマイコンに関する情報を公開されている先輩方に感謝致します。
