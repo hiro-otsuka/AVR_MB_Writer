@@ -62,9 +62,6 @@ void MainWindow::StartCommand(execMode mode)
     case EM_VER:
       data.append('V');
       break;
-    case EM_BANK:
-      data.append('I');
-      break;
     case EM_FIND:
       data.append('F');
       break;
@@ -80,7 +77,7 @@ void MainWindow::StartCommand(execMode mode)
       break;
     case EM_INS_WRITE:
     case EM_WRITE:
-      data.append('A');
+      data.append('W');
       break;
     case EM_FUSE:
       data.append('Z');
@@ -93,7 +90,7 @@ void MainWindow::StartCommand(execMode mode)
       break;
     case EM_INS_READ:
     case EM_DEL_READ:
-      data.append('N');
+      data.append('R');
       break;
     default:
       return;
@@ -144,7 +141,7 @@ void MainWindow::ConsoleOut(const QByteArray& buff)
 void MainWindow::ConnectionSet(bool isConnected = 1)
 {
   nowConnect = isConnected;
-  ui->btnBank->setEnabled(isConnected);
+  ui->btnFiles->setEnabled(isConnected);
   ui->btnFuse->setEnabled(isConnected);
   ui->btnElfWrite->setEnabled(isConnected);
 
@@ -154,13 +151,10 @@ void MainWindow::ConnectionSet(bool isConnected = 1)
 void MainWindow::EEPROMExist(bool isExist = 1)
 {
   nowEEPROM = isExist;
-  ui->cmbBank->setEnabled(isExist);
-  ui->btnFiles->setEnabled(isExist);
   ui->btnAddr->setEnabled(isExist);
   ui->btnWrite->setEnabled(isExist);
   ui->btnDelete->setEnabled(isExist);
   ui->txtAddr->setEnabled(isExist);
-  ui->lstFiles->setEnabled(isExist);
 }
 
 void MainWindow::CommandRunning(bool isRunning = 1)
@@ -282,7 +276,7 @@ void MainWindow::on_btnConnect_clicked()
   if (serial->isOpen()) serial->close();
   serial->setPortName(ui->cmbPorts->itemText(ui->cmbPorts->currentIndex()));
   nowSettings->beginGroup("SERIAL");
-  serial->setBaudRate(nowSettings->value("BAUD", QSerialPort::Baud9600).toInt());
+  serial->setBaudRate(nowSettings->value("BAUD", QSerialPort::Baud115200).toInt());
   serial->setDataBits(QSerialPort::DataBits(nowSettings->value("BITS", QSerialPort::Data8).toInt()));
   serial->setParity(QSerialPort::Parity(nowSettings->value("PARITY", QSerialPort::NoParity).toInt()));
   serial->setStopBits(QSerialPort::StopBits(nowSettings->value("STOPBITS", QSerialPort::OneStop).toInt()));
@@ -293,22 +287,16 @@ void MainWindow::on_btnConnect_clicked()
   StartCommand(EM_VER);
 }
 
-void MainWindow::on_btnBank_clicked()
+void MainWindow::on_btnFiles_clicked()
 {
   if (nowExec != EM_END) return;
   StartCommand(EM_FIND);
 }
 
-void MainWindow::on_btnFiles_clicked()
-{
-  if (nowExec != EM_END) return;
-  StartCommand(EM_FILES);
-}
-
 void MainWindow::on_btnAddr_clicked()
 {
   if (nowExec != EM_END) return;
-  nowAddr = ui->lstFiles->currentItem()->data(Qt::DisplayRole).toString().left(4);
+  nowAddr = ui->lstFiles->currentItem()->data(Qt::DisplayRole).toString().left(6);
   ui->txtAddr->setText(nowAddr);
   on_txtAddr_editingFinished();
 }
@@ -340,30 +328,30 @@ void MainWindow::on_btnWrite_clicked()
 
   if (ui->cmbWriteMode->currentIndex() == 0 || ui->lstFiles->currentRow() >= ui->lstFiles->count() - 1) {
     startMode = EM_WRITE;
-    lastSize = 0xFFFF - QString("0x" + nowAddr).toInt(0, 16);
+    lastSize = (nowBank * 0x10000 - 1) - QString("0x" + nowAddr).toInt(0, 16);
   }
   else {
     if (nowTmp.isOpen()) nowTmp.close();
     nextAddr = nowAddr;
     if (ui->cmbWriteMode->currentIndex() == 1) {
       nowSize =
-          QString("0x" + ui->lstFiles->item(ui->lstFiles->count()-1)->data(Qt::ItemDataRole::DisplayRole).toString().left(4)).toInt(0, 16)
-          - QString("0x" + ui->lstFiles->item(ui->lstFiles->currentRow() + 1)->data(Qt::ItemDataRole::DisplayRole).toString().left(4)).toInt(0, 16)
+          QString("0x" + ui->lstFiles->item(ui->lstFiles->count()-1)->data(Qt::ItemDataRole::DisplayRole).toString().left(6)).toInt(0, 16)
+          - QString("0x" + ui->lstFiles->item(ui->lstFiles->currentRow() + 1)->data(Qt::ItemDataRole::DisplayRole).toString().left(6)).toInt(0, 16)
           +1;
-      nowAddr = ui->lstFiles->item(ui->lstFiles->currentRow() + 1)->data(Qt::ItemDataRole::DisplayRole).toString().left(4);
+      nowAddr = ui->lstFiles->item(ui->lstFiles->currentRow() + 1)->data(Qt::ItemDataRole::DisplayRole).toString().left(6);
       startMode = EM_RES_ADDR;
     } else {
       nowSize =
-          QString("0x" + ui->lstFiles->item(ui->lstFiles->count()-1)->data(Qt::ItemDataRole::DisplayRole).toString().left(4)).toInt(0, 16)
-          - QString("0x" + ui->lstFiles->item(ui->lstFiles->currentRow())->data(Qt::ItemDataRole::DisplayRole).toString().left(4)).toInt(0, 16)
+          QString("0x" + ui->lstFiles->item(ui->lstFiles->count()-1)->data(Qt::ItemDataRole::DisplayRole).toString().left(6)).toInt(0, 16)
+          - QString("0x" + ui->lstFiles->item(ui->lstFiles->currentRow())->data(Qt::ItemDataRole::DisplayRole).toString().left(6)).toInt(0, 16)
           +1;
       startMode = EM_INS_READ;
     }
-    lastSize = 0xFFFF - (QString("0x" + nextAddr).toInt(0, 16) + nowSize);
+    lastSize = (nowBank * 0x10000 - 1) - (QString("0x" + nextAddr).toInt(0, 16) + nowSize);
     nowTmp.open();
   }
   if (fileInfo.size() > lastSize) {
-    ErrorMessage("Data exceed 0xFFFF");
+    ErrorMessage("Data exceed 0x" + QString::number(nowBank * 0x10000 - 1, 16));
     return;
   }
   StartCommand(startMode);
@@ -381,12 +369,12 @@ void MainWindow::on_btnDelete_clicked()
   else {
     if (nowTmp.isOpen()) nowTmp.close();
     nowSize =
-        QString("0x" + ui->lstFiles->item(ui->lstFiles->count()-1)->data(Qt::ItemDataRole::DisplayRole).toString().left(4)).toInt(0, 16)
-        - QString("0x" + ui->lstFiles->item(ui->lstFiles->currentRow() + 1)->data(Qt::ItemDataRole::DisplayRole).toString().left(4)).toInt(0, 16)
+        QString("0x" + ui->lstFiles->item(ui->lstFiles->count()-1)->data(Qt::ItemDataRole::DisplayRole).toString().left(6)).toInt(0, 16)
+        - QString("0x" + ui->lstFiles->item(ui->lstFiles->currentRow() + 1)->data(Qt::ItemDataRole::DisplayRole).toString().left(6)).toInt(0, 16)
         +1;
     nowTmp.open();
     nextAddr = nowAddr;
-    nowAddr = ui->lstFiles->item(ui->lstFiles->currentRow() + 1)->data(Qt::ItemDataRole::DisplayRole).toString().left(4);
+    nowAddr = ui->lstFiles->item(ui->lstFiles->currentRow() + 1)->data(Qt::ItemDataRole::DisplayRole).toString().left(6);
     StartCommand(EM_DEL_ADDR);
   }
 }
@@ -430,21 +418,13 @@ void MainWindow::on_btnElfWrite_clicked()
   // Program Header table
   buff = nowFile.read(4);   // Type
   buff = nowFile.read(4);   // File Offset
-  qint64 f_offset = buff.at(0) + (buff.at(1) << 8) + (buff.at(2) << 16) + (buff.at(3) << 24);
+  qint64 f_offset = (buff.at(0) & 0xFF) + ((buff.at(1) & 0xFF) << 8) + ((buff.at(2) & 0xFF) << 16) + ((buff.at(3) & 0xFF) << 24);
   buff = nowFile.read(4+4); // vaddr & paddr
   buff = nowFile.read(4);   // File Size
-  qint64 f_size = buff.at(0) + (buff.at(1) << 8) + (buff.at(2) << 16) + (buff.at(3) << 24);
+  qint64 f_size = (buff.at(0) & 0xFF) + ((buff.at(1) & 0xFF) << 8) + ((buff.at(2) & 0xFF) << 16) + ((buff.at(3) & 0xFF) << 24);
   nowSize = (int)f_size;
   nowFile.seek(f_offset);
   StartCommand(EM_PROG);
-}
-
-// cmb ------------------------------------------------------------------------
-void MainWindow::on_cmbBank_currentIndexChanged(int index)
-{
-  if (nowExec != EM_END) return;
-  nowBank = ui->cmbBank->itemText(index);
-  StartCommand(EM_BANK);
 }
 
 // txt ------------------------------------------------------------------------
@@ -525,16 +505,17 @@ void MainWindow::readData()
     else if (chr == '?' || chr == ';') {
       QByteArray buff;
       switch(nowExec) {
-        case EM_BANK:
-          buff = nowBank.toLocal8Bit();
-          serial->write(buff);
-          break;
         case EM_RES_ADDR:
         case EM_INS_ADDR:
         case EM_DEL_ADDR:
         case EM_DEL_ADDR2:
         case EM_ADDR:
           buff = nowAddr.toLocal8Bit();
+          serial->write(buff);
+          break;
+        case EM_DEL_READ:
+        case EM_INS_READ:
+          buff = (QString("000000") + QString::number(nowSize, 16)).right(6).toLocal8Bit();
           serial->write(buff);
           break;
         case EM_DEL:
@@ -599,25 +580,18 @@ void MainWindow::readData()
           ConnectionSet(true);
           break;
         case EM_FIND:
-          ui->cmbBank->clear();
-          for (int i = 0; i < res_List.count(); i++) ui->cmbBank->addItem(res_List[i]);
           if (res_List.count() != 0) {
-            nowBank = ui->cmbBank->itemText(0);
-            StartCommand(EM_BANK);
+            nowBank = res_List.count();
+            ui->lblBanks->setText(QString("0x") + QString::number(nowBank, 16) + QString("0000"));
+            StartCommand(EM_FILES);
           }
           else {
+            ui->lblBanks->setText("-------");
             nowExec = EM_END;
             EEPROMExist(false);
           }
           break;
         case EM_DEL:
-          if (res_Line != "OK") {
-            ErrorMessage("Error Response!");
-          }
-          nowExec = EM_END;
-          StartCommand(EM_FILES);
-          break;
-        case EM_BANK:
           if (res_Line != "OK") {
             ErrorMessage("Error Response!");
           }
@@ -635,14 +609,14 @@ void MainWindow::readData()
         case EM_ADDR:
         case EM_FUSE:
           if (res_Line != "OK") {
-            ErrorMessage("Error Response!");
+            ErrorMessage("Error Response!" + res_Line);
           }
           nowExec = EM_END;
           break;
         case EM_WRITE:
           if (nowFile.isOpen()) nowFile.close();
           if (res_Line != "OK") {
-            ErrorMessage("Error Response!");
+            ErrorMessage("Error Response!" + res_Line);
             nowExec = EM_END;
           }
           else {
@@ -653,7 +627,7 @@ void MainWindow::readData()
         case EM_PROG:
           if (nowFile.isOpen()) nowFile.close();
           if (res_Line != "OK") {
-            ErrorMessage("Error Response!");
+            ErrorMessage("Error Response!" + res_Line);
           }
           nowExec = EM_END;
           break;
@@ -678,28 +652,22 @@ void MainWindow::readData()
         case EM_INS_READ:
           for (int i = 0; i < res_List.count() && nowSize > 0; i++) {
             QByteArray tmpbuff;
-            QString tmpstr = res_List.at(i).mid(5);
-            for (int j = 0; j < (nowSize < 32 ? nowSize*2 : tmpstr.count()); j += 2) {
+            QString tmpstr = res_List.at(i).mid(7);
+            for (int j = 0; j < tmpstr.count(); j += 2) {
               tmpbuff.append((char)("0x" + tmpstr.mid(j, 2)).toInt(0, 16));
+              nowSize --;
             }
             nowTmp.write(tmpbuff);
-            nowSize -= 32;  //0x20
           }
-          if (nowSize <= 0) {
-            nowTmp.close();
-            nowAddr = nextAddr;
-            if(nowExec == EM_INS_READ) {
-              nowExec = EM_END;
-              StartCommand(EM_INS_ADDR);
-            }
-            else {
-              nowExec = EM_END;
-              StartCommand(EM_DEL_ADDR2);
-            }
-          } else {
-            execMode tmpExec = nowExec;
+          nowTmp.close();
+          nowAddr = nextAddr;
+          if(nowExec == EM_INS_READ) {
             nowExec = EM_END;
-            StartCommand(tmpExec);
+            StartCommand(EM_INS_ADDR);
+          }
+          else {
+            nowExec = EM_END;
+            StartCommand(EM_DEL_ADDR2);
           }
           break;
         case EM_INS_WRITE:

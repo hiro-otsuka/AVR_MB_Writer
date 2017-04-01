@@ -26,7 +26,6 @@ public:
 private slots:
   void on_btnRefresh_clicked();
   void on_btnConnect_clicked();
-  void on_btnBank_clicked();
   void on_btnFiles_clicked();
   void on_btnAddr_clicked();
   void on_btnBinary_clicked();
@@ -39,7 +38,6 @@ private slots:
   void on_btnMMLEdit_clicked();
   void on_btnMML_clicked();
 
-  void on_cmbBank_currentIndexChanged(int index);
   void on_txtAddr_editingFinished();
   void on_lstFiles_currentRowChanged(int currentRow);
 
@@ -56,7 +54,7 @@ private:
   Settings* setdialog;
   QSerialPort *serial;
   enum execMode {
-    EM_END, EM_VER, EM_BANK, EM_FIND, EM_FILES, EM_ADDR, EM_WRITE, EM_FUSE, EM_PROG, EM_ABORT, EM_DEL, EM_RES_ADDR, EM_INS_READ, EM_INS_ADDR, EM_INS_WRITE, EM_DEL_ADDR, EM_DEL_READ, EM_DEL_ADDR2
+    EM_END, EM_VER, EM_FIND, EM_FILES, EM_ADDR, EM_WRITE, EM_FUSE, EM_PROG, EM_ABORT, EM_DEL, EM_RES_ADDR, EM_INS_READ, EM_INS_ADDR, EM_INS_WRITE, EM_DEL_ADDR, EM_DEL_READ, EM_DEL_ADDR2
   };
   enum lineMode {
     LM_NONE, LM_CMD, LM_RES_1, LM_RES_L, LM_MESG, LM_LIST, LM_ERR
@@ -76,11 +74,11 @@ private:
   lineMode nowLine;
 
   QString  nowVer;
-  QString  nowBank;
   QString  nowAddr;
   QString  nextAddr;
   int      nowFuse;
   int      nowSize;
+  int      nowBank;
   bool     nowConnect;
   bool     nowEEPROM;
   QFile    nowFile;
