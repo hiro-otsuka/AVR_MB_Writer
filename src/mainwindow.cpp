@@ -181,6 +181,9 @@ void MainWindow::on_btnRefresh_clicked()
   ConnectionSet(false);
   const auto infos = QSerialPortInfo::availablePorts();
   ui->cmbPorts->clear();
+  ui->lblVersion->clear();
+  ui->lstFiles->clear();
+  ui->lblBanks->setText("-------");
 
   for (const QSerialPortInfo &info : infos) {
       ui->cmbPorts->addItem(info.portName());
@@ -284,18 +287,24 @@ void MainWindow::on_btnConnect_clicked()
   nowSettings->endGroup();
   serial->open(QIODevice::ReadWrite);
 
+  ui->lblVersion->clear();
+  ui->lstFiles->clear();
+  ui->lblBanks->setText("-------");
   StartCommand(EM_VER);
 }
 
 void MainWindow::on_btnFiles_clicked()
 {
   if (nowExec != EM_END) return;
+  ui->lstFiles->clear();
+  ui->lblBanks->setText("-------");
   StartCommand(EM_FIND);
 }
 
 void MainWindow::on_btnAddr_clicked()
 {
   if (nowExec != EM_END) return;
+  if (ui->lstFiles->currentItem() == NULL) return;
   nowAddr = ui->lstFiles->currentItem()->data(Qt::DisplayRole).toString().left(6);
   ui->txtAddr->setText(nowAddr);
   on_txtAddr_editingFinished();
@@ -635,6 +644,7 @@ void MainWindow::readData()
           if (nowFile.isOpen()) nowFile.close();
           ErrorMessage(res_Error);
           nowExec = EM_END;
+          ConnectionSet(false);
           break;
         case EM_DEL_ADDR:
           nowExec = EM_END;
@@ -693,7 +703,7 @@ void MainWindow::readData()
            break;
          case LM_ERR:
            if (chr != '\n') res_Error.append(chr);
-           else nowExec = EM_ABORT;
+           else if (nowExec != EM_END) nowExec = EM_ABORT;
            break;
          case LM_LIST:
            if (chr != '\n') res_List[res_List.count()-1].append(chr);
