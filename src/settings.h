@@ -26,6 +26,8 @@ private slots:
 
   void on_btnEditor_clicked();
 
+  void on_btnPAR2BIN_clicked();
+
 private:
   Ui::Settings *ui;
   QSettings* nowSettings;

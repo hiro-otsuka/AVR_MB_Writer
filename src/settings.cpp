@@ -50,6 +50,7 @@ Settings::Settings(QSettings* setting, QWidget *parent) :
 
   nowSettings->beginGroup("TOOLS");
   ui->txtMML2BIN->setText(nowSettings->value("MML2BIN", "MML2BIN.EXE").toString());
+  ui->txtPAR2BIN->setText(nowSettings->value("PAR2BIN", "PAR2BIN.EXE").toString());
   ui->txtEditor->setText(nowSettings->value("EDITOR", "notepad.exe").toString());
   nowSettings->endGroup();
 }
@@ -71,6 +72,7 @@ void Settings::on_buttonBox_accepted()
 
   nowSettings->beginGroup("TOOLS");
   nowSettings->setValue("MML2BIN", ui->txtMML2BIN->text());
+  nowSettings->setValue("PAR2BIN", ui->txtPAR2BIN->text());
   nowSettings->setValue("EDITOR", ui->txtEditor->text());
   nowSettings->endGroup();
 
@@ -89,9 +91,16 @@ void Settings::on_btnMML2BIN_clicked()
   if(!fileName.isEmpty()) ui->txtMML2BIN->setText(fileName);
 }
 
+void Settings::on_btnPAR2BIN_clicked()
+{
+  QString fileName = QFileDialog::getOpenFileName(this, tr("Select File"), ui->txtPAR2BIN->text(), tr("All Files(*.*)"));
+  if(!fileName.isEmpty()) ui->txtPAR2BIN->setText(fileName);
+}
+
 void Settings::on_btnEditor_clicked()
 {
 
   QString fileName = QFileDialog::getOpenFileName(this, tr("Select File"), ui->txtEditor->text(), tr("All Files(*.*)"));
   if(!fileName.isEmpty()) ui->txtEditor->setText(fileName);
 }
+

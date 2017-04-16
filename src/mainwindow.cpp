@@ -220,7 +220,7 @@ void MainWindow::on_btnMML_clicked()
 {
   nowSettings->beginGroup("FOLDER");
   QString Folder = nowSettings->value("FOLDER_MML", "./").toString();
-  QString fileName = QFileDialog::getOpenFileName(this, tr("Select File"), Folder, tr("MML Files(*.mml);;All Files(*.*)"));
+  QString fileName = QFileDialog::getOpenFileName(this, tr("Select File"), Folder, tr("Source Files(*.mml *.par);;All Files(*.*)"));
   if (!fileName.isEmpty()) {
     nowSettings->setValue("FOLDER_MML", QFileInfo(fileName).absolutePath());
     ui->txtMML->setText(fileName);
@@ -232,12 +232,18 @@ void MainWindow::on_btnMML_clicked()
 void MainWindow::on_btnMML2BIN_clicked()
 {
   QString fileName = ui->txtMML->text();
+  QString toolName;
   QFileInfo fileInfo(fileName);
 
   nowSettings->beginGroup("TOOLS");
-  QString cmdLine = "\"" + nowSettings->value("MML2BIN", "MML2BIN.EXE").toString() + "\"";
+  if (fileName.right(3).toUpper() == "MML") {
+    toolName = nowSettings->value("MML2BIN", "MML2BIN.EXE").toString();
+  } else {
+    toolName = nowSettings->value("PAR2BIN", "PAR2BIN.EXE").toString();
+  }
   nowSettings->endGroup();
 
+  QString cmdLine = "\"" + toolName + "\"";
   cmdLine += " \"" + fileName + "\"";
 
   if (fileName.isEmpty() || !fileInfo.exists() || !fileInfo.isFile()) {
@@ -248,7 +254,7 @@ void MainWindow::on_btnMML2BIN_clicked()
   Proc_Kill(nowProc);
   nowProc->start(cmdLine);
   if(!nowProc->waitForStarted())
-    ErrorMessage("MML2BIN tool not found.");
+    ErrorMessage(toolName + " tool not found.");
 }
 
 void MainWindow::on_btnMMLEdit_clicked()
@@ -471,7 +477,7 @@ void MainWindow::on_ProcessOut()
 void MainWindow::on_ProcessFinished(int code, QProcess::ExitStatus)
 {
   if (code == 0) {
-    QRegExp reg("\\.mml$");
+    QRegExp reg("\\.(mml|par)$");
     reg.setCaseSensitivity(Qt::CaseInsensitive);
     ui->txtBinary->setText(ui->txtMML->text().replace(reg, ".BIN"));
   }

@@ -204,7 +204,7 @@
             <item>
              <widget class="QLabel" name="lblMML">
               <property name="text">
-               <string>MML File:</string>
+               <string>Source:</string>
               </property>
              </widget>
             </item>
@@ -272,7 +272,7 @@
                </sizepolicy>
               </property>
               <property name="text">
-               <string>MML2BIN</string>
+               <string>Source to BIN</string>
               </property>
              </widget>
             </item>
