@@ -49,12 +49,16 @@ private slots:
 
   void readData();
 
+  void on_btnEEPROM_clicked();
+
+  void on_btnEEPROMWrite_clicked();
+
 private:
   Ui::MainWindow *ui;
   Settings* setdialog;
   QSerialPort *serial;
   enum execMode {
-    EM_END, EM_VER, EM_FIND, EM_FILES, EM_ADDR, EM_WRITE, EM_FUSE, EM_PROG, EM_ABORT, EM_DEL, EM_RES_ADDR, EM_INS_READ, EM_INS_ADDR, EM_INS_WRITE, EM_DEL_ADDR, EM_DEL_READ, EM_DEL_ADDR2
+    EM_END, EM_VER, EM_FIND, EM_FILES, EM_ADDR, EM_WRITE, EM_FUSE, EM_EEPROM, EM_PROG, EM_ABORT, EM_DEL, EM_RES_ADDR, EM_INS_READ, EM_INS_ADDR, EM_INS_WRITE, EM_DEL_ADDR, EM_DEL_READ, EM_DEL_ADDR2
   };
   enum lineMode {
     LM_NONE, LM_CMD, LM_RES_1, LM_RES_L, LM_MESG, LM_LIST, LM_ERR

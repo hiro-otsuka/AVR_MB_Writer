@@ -22,12 +22,8 @@ AVR_MusicBox とともに公開している [AVR_MB_Writer.ino](https://github.c
 * Connect  
  選択したSerialポートに接続します。
 
-* BANK  
- 接続したSerialポートに接続されている AVR_MusicBoxの EEPROMバンク一覧を表示します。
- バンク一覧からバンク番号を選択することで操作対象を切り替えることができます。
-
 * Files  
- 選択したBANKからファイルの一覧を取得し、リストに表示します。
+ 接続したSerialポートに接続されている AVR_MusicBoxの EEPROM 容量と、ファイルの一覧を取得し、リストに表示します。
 
 * \>\>  
  ファイルの一覧で選択されているEEPROMアドレスを、Addr: に入力します。
@@ -37,13 +33,13 @@ AVR_MusicBox とともに公開している [AVR_MB_Writer.ino](https://github.c
  Write や Delete の操作を行う対象アドレスです。
  ファイルの一覧からファイルを選択することで自動的に更新されるため、通常は修正する必要はありません。
 
-* MML File:  
- MML ファイルを選択します。
+* Source:  
+ BINファイルのもとになる MML ファイルや PRA ファイルを選択します。
 
-* MML2BIN  
- MML2BINツールを使って、MMLファイルをバイナリに変換します。
+* Source to BIN  
+ MML2BINツールやPAR2BINツールを使って、Sourceファイルをバイナリに変換します。
  エラーや実行結果は、ウィンドウ下部のコンソールに表示されます。
- MML2BINツールのPATHは、File -> Settings メニュー から設定できます。
+ ツールのPATHは、File -> Settings メニュー から設定できます。
  バイナリへの変換に成功すると、自動的にバイナリファイル名が Local File: に入力されます。
 
 * Edit  
@@ -67,17 +63,23 @@ AVR_MusicBox とともに公開している [AVR_MB_Writer.ino](https://github.c
   Insert Write ... 選択中の位置にファイルを挿入します。後続ファイルは保持されます。
  なお、Delete操作では、Resize, Insert で動作の違いはありません（後続ファイルは保持されます）。
 
+* ATTiny EEPROM:  
+ ATTiny85 の EEPROM に書き込む設定ファイル（バイナリファイル）を選択します。
+
+* Write!(EEPROM)  
+ ATTiny EEPROM: に指定したファイルを ATTiny85 の EEPROM に書き込みます。
+
 * ATTiny ELF:  
  ATTiny85 に書き込む ELFファイル（実行モジュール）を選択します。
+
+* Write!(ELF)  
+ ATTiny ELF: に指定したファイルを ATTiny85 のフラッシュメモリに書き込みます。
 
 * ATTiny85 Fuse:  
  ATTiny85 に書き込む Fuse 設定を選択します。
   Initialize ... AVR_MusicBox に必要な標準的な Fuse を設定します。
   RST Enable ... RSTピンを有効（I/Oとして使用不可）に設定します。
   RST Disable ... RSTピンを無効（I/Oとして使用可能）に設定します。
-
-* Write!(ELF)  
- ATTiny ELF: に指定したファイルを ATTiny85 に書き込みます。
 
 # 実装例  
  [AVR_MusicBoxの回路例](https://github.com/hiro-otsuka/AVR_MusicBox/tree/master/circuits) を参照。
@@ -87,5 +89,6 @@ AVR_MusicBox とともに公開している [AVR_MB_Writer.ino](https://github.c
 
 # 変更履歴
 
+* 2017/04/24  AVR_MBの機能変更に伴いツールも変更
 * 2017/03/12  新規公開
 

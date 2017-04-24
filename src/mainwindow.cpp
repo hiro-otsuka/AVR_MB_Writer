@@ -82,6 +82,9 @@ void MainWindow::StartCommand(execMode mode)
     case EM_FUSE:
       data.append('Z');
       break;
+    case EM_EEPROM:
+      data.append('E');
+      break;
     case EM_PROG:
       data.append('P');
       break;
@@ -144,6 +147,7 @@ void MainWindow::ConnectionSet(bool isConnected = 1)
   ui->btnFiles->setEnabled(isConnected);
   ui->btnFuse->setEnabled(isConnected);
   ui->btnElfWrite->setEnabled(isConnected);
+  ui->btnEEPROMWrite->setEnabled(isConnected);
 
   EEPROMExist(false);
 }
@@ -198,6 +202,20 @@ void MainWindow::on_btnBinary_clicked()
   if (!fileName.isEmpty()) {
     nowSettings->setValue("FOLDER_BIN", QFileInfo(fileName).absolutePath());
     ui->txtBinary->setText(fileName);
+  }
+  nowSettings->endGroup();
+  nowSettings->sync();
+}
+
+
+void MainWindow::on_btnEEPROM_clicked()
+{
+  nowSettings->beginGroup("FOLDER");
+  QString Folder = nowSettings->value("FOLDER_EEPROM", "./").toString();
+  QString fileName = QFileDialog::getOpenFileName(this, tr("Select File"), Folder, tr("EEPROM Files (*.bin);;All Files(*.*)"));
+  if (!fileName.isEmpty()) {
+    nowSettings->setValue("FOLDER_EEPROM", QFileInfo(fileName).absolutePath());
+    ui->txtEEPROM->setText(fileName);
   }
   nowSettings->endGroup();
   nowSettings->sync();
@@ -403,6 +421,29 @@ void MainWindow::on_btnFuse_clicked()
   StartCommand(EM_FUSE);
 }
 
+void MainWindow::on_btnEEPROMWrite_clicked()
+{
+  QByteArray buff;
+
+  if (nowExec != EM_END) return;
+  QString fileName = ui->txtEEPROM->text();
+  QFileInfo fileInfo(fileName);
+  if (fileName.isEmpty() || !fileInfo.exists() || !fileInfo.isFile()) {
+    ErrorMessage("File not exist!");
+    return;
+  }
+  if (nowFile.isOpen()) nowFile.close();
+  if (SelectYorC("Write EEPROM file to ATTiny85. ELF will be destroyed. Are you sure?") == 0) return;
+
+  nowFile.setFileName(fileName);
+  if (!nowFile.open(QIODevice::ReadOnly)) {
+    ErrorMessage("File cannot open!");
+    return;
+  }
+  nowSize = nowFile.size();
+  StartCommand(EM_EEPROM);
+}
+
 void MainWindow::on_btnElfWrite_clicked()
 {
   QByteArray buff;
@@ -556,6 +597,7 @@ void MainWindow::readData()
             serial->write(buff);
           }
           break;
+        case EM_EEPROM:
         case EM_PROG:
           if(chr == ';') text.append('\n');
           if (nowFile.isOpen()) {
@@ -639,6 +681,7 @@ void MainWindow::readData()
             StartCommand(EM_FILES);
           }
           break;
+        case EM_EEPROM:
         case EM_PROG:
           if (nowFile.isOpen()) nowFile.close();
           if (res_Line != "OK") {
