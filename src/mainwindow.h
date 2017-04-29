@@ -9,6 +9,7 @@
 #include <QMessageBox>
 #include <QSettings>
 #include <QTemporaryFile>
+#include <QElapsedTimer>
 #include "settings.h"
 
 namespace Ui {
@@ -57,6 +58,7 @@ private:
   Ui::MainWindow *ui;
   Settings* setdialog;
   QSerialPort *serial;
+  QElapsedTimer timer;
   enum execMode {
     EM_END, EM_VER, EM_FIND, EM_FILES, EM_ADDR, EM_WRITE, EM_FUSE, EM_EEPROM, EM_PROG, EM_ABORT, EM_DEL, EM_RES_ADDR, EM_INS_READ, EM_INS_ADDR, EM_INS_WRITE, EM_DEL_ADDR, EM_DEL_READ, EM_DEL_ADDR2
   };
@@ -64,12 +66,14 @@ private:
     LM_NONE, LM_CMD, LM_RES_1, LM_RES_L, LM_MESG, LM_LIST, LM_ERR
   };
   QString IntToHex(int data);
+  QString IntToPercent(int valNow, int valMax);
   void ErrorMessage(QString msg);
   int  SelectYorC(QString msg);
 
   void StartCommand(execMode mode);
   void Proc_Kill(QProcess* target);
   void ConsoleOut(const QByteArray& buff);
+  void ConsoleReLine();
   void ConnectionSet(bool isConnected);
   void EEPROMExist(bool isExist);
   void CommandRunning(bool isRunning);
@@ -83,6 +87,9 @@ private:
   int      nowFuse;
   int      nowSize;
   int      nowBank;
+  int      nowConsole;
+  int      nowProg;
+  int      maxProg;
   bool     nowConnect;
   bool     nowEEPROM;
   QFile    nowFile;

@@ -54,6 +54,33 @@ QString MainWindow::IntToHex(int data)
   return buff;
 }
 
+QString MainWindow::IntToPercent(int valNow, int valMax)
+{
+  QString buff;
+
+  int valPers = (valNow * 100) / valMax;
+
+  if (valPers > 100) valPers = 100;
+  if(valPers < 100) buff.append(' ');
+  if(valPers < 10) buff.append(' ');
+  buff.append(QString::number(valPers));
+  buff.append('\%');
+  buff.append(' ');
+  if (valNow == 0) timer.start();
+  else if (valNow != valMax) {
+    int remsec = timer.elapsed() * (valMax - valNow) / valNow / 1000;
+    buff.append("(remain ");
+    if (remsec >= 60) {
+      buff.append(QString::number(int(remsec / 60)));
+      buff.append("min ");
+    }
+    buff.append(QString::number(int(remsec % 60)));
+    buff.append("sec)");
+  }
+
+  return buff;
+}
+
 // commands --------------------------------------------------------------------
 void MainWindow::StartCommand(execMode mode)
 {
@@ -137,6 +164,15 @@ void MainWindow::ConsoleOut(const QByteArray& buff)
 {
   ui->lstConsole->moveCursor(QTextCursor::End);
   ui->lstConsole->insertPlainText(QString::fromLocal8Bit(buff));
+  QScrollBar *bar = ui->lstConsole->verticalScrollBar();
+  bar->setValue(bar->maximum());
+}
+
+void MainWindow::ConsoleReLine()
+{
+  ui->lstConsole->moveCursor(QTextCursor::End);
+  ui->lstConsole->moveCursor(QTextCursor::StartOfLine, QTextCursor::KeepAnchor);
+  ui->lstConsole->cut();
   QScrollBar *bar = ui->lstConsole->verticalScrollBar();
   bar->setValue(bar->maximum());
 }
@@ -308,6 +344,8 @@ void MainWindow::on_btnConnect_clicked()
   serial->setParity(QSerialPort::Parity(nowSettings->value("PARITY", QSerialPort::NoParity).toInt()));
   serial->setStopBits(QSerialPort::StopBits(nowSettings->value("STOPBITS", QSerialPort::OneStop).toInt()));
   serial->setFlowControl(QSerialPort::FlowControl(nowSettings->value("FLOWCTRL", QSerialPort::NoFlowControl).toInt()));
+  nowConsole = nowSettings->value("CONSOLELEVEL", 1).toInt();
+
   nowSettings->endGroup();
   serial->open(QIODevice::ReadWrite);
 
@@ -383,6 +421,7 @@ void MainWindow::on_btnWrite_clicked()
     lastSize = (nowBank * 0x10000 - 1) - (QString("0x" + nextAddr).toInt(0, 16) + nowSize);
     nowTmp.open();
   }
+  maxProg = nowProg = fileInfo.size();
   if (fileInfo.size() > lastSize) {
     ErrorMessage("Data exceed 0x" + QString::number(nowBank * 0x10000 - 1, 16));
     return;
@@ -440,7 +479,7 @@ void MainWindow::on_btnEEPROMWrite_clicked()
     ErrorMessage("File cannot open!");
     return;
   }
-  nowSize = nowFile.size();
+  nowProg = maxProg = nowSize = nowFile.size();
   StartCommand(EM_EEPROM);
 }
 
@@ -478,7 +517,7 @@ void MainWindow::on_btnElfWrite_clicked()
   buff = nowFile.read(4+4); // vaddr & paddr
   buff = nowFile.read(4);   // File Size
   qint64 f_size = (buff.at(0) & 0xFF) + ((buff.at(1) & 0xFF) << 8) + ((buff.at(2) & 0xFF) << 16) + ((buff.at(3) & 0xFF) << 24);
-  nowSize = (int)f_size;
+  nowProg = maxProg = nowSize = (int)f_size;
   nowFile.seek(f_offset);
   StartCommand(EM_PROG);
 }
@@ -573,14 +612,20 @@ void MainWindow::readData()
         case EM_INS_READ:
           buff = (QString("000000") + QString::number(nowSize, 16)).right(6).toLocal8Bit();
           serial->write(buff);
+          text.append("Reading... ");
           break;
         case EM_DEL:
           buff.append("00");
           serial->write(buff);
+          text.append("Deleting... ");
           break;
         case EM_INS_WRITE:
         case EM_WRITE:
-          if(chr == ';') text.append('\n');
+          text.append("Writing..." + IntToPercent(maxProg - nowProg, maxProg));
+          if(chr == ';') {
+            if (nowConsole >= 1) text.append('\n');
+            else ConsoleReLine();
+          }
           if (nowFile.isOpen()) {
             QByteArray tmpdata = nowFile.read(32);
             if (tmpdata.count() == 0) {
@@ -593,13 +638,18 @@ void MainWindow::readData()
               buff.append("000000");
               buff.append(tmpdata.toHex());
               buff.append("00\n\r");
+              nowProg -= 32;
             }
             serial->write(buff);
           }
           break;
         case EM_EEPROM:
         case EM_PROG:
-          if(chr == ';') text.append('\n');
+          text.append("Writing..." + IntToPercent(maxProg - nowProg, maxProg));
+          if(chr == ';') {
+            if (nowConsole >= 1) text.append('\n');
+            else ConsoleReLine();
+          }
           if (nowFile.isOpen()) {
             QByteArray tmpdata = nowFile.read(nowSize >= 64 ? 64 : nowSize);
             if (nowSize == 0) {
@@ -613,6 +663,7 @@ void MainWindow::readData()
               buff.append("000000");
               buff.append(tmpdata.toHex());
               buff.append("00\n\r");
+              nowProg -= 64;
             }
             serial->write(buff);
           }
@@ -622,6 +673,7 @@ void MainWindow::readData()
           else if (nowFuse == 2) buff.append("22");
           else buff.append("11");
           serial->write(buff);
+          text.append("Fuse Writing... ");
           break;
       }
       nowLine = LM_CMD;
@@ -649,6 +701,7 @@ void MainWindow::readData()
           }
           break;
         case EM_DEL:
+          ConsoleReLine();
           if (res_Line != "OK") {
             ErrorMessage("Error Response!");
           }
@@ -663,14 +716,16 @@ void MainWindow::readData()
           on_btnAddr_clicked();
           EEPROMExist(true);
           break;
-        case EM_ADDR:
         case EM_FUSE:
+          ConsoleReLine();
+        case EM_ADDR:
           if (res_Line != "OK") {
             ErrorMessage("Error Response!" + res_Line);
           }
           nowExec = EM_END;
           break;
         case EM_WRITE:
+          ConsoleReLine();
           if (nowFile.isOpen()) nowFile.close();
           if (res_Line != "OK") {
             ErrorMessage("Error Response!" + res_Line);
@@ -683,6 +738,7 @@ void MainWindow::readData()
           break;
         case EM_EEPROM:
         case EM_PROG:
+          ConsoleReLine();
           if (nowFile.isOpen()) nowFile.close();
           if (res_Line != "OK") {
             ErrorMessage("Error Response!" + res_Line);
@@ -709,6 +765,7 @@ void MainWindow::readData()
           break;
         case EM_DEL_READ:
         case EM_INS_READ:
+          ConsoleReLine();
           for (int i = 0; i < res_List.count() && nowSize > 0; i++) {
             QByteArray tmpbuff;
             QString tmpstr = res_List.at(i).mid(7);
@@ -730,6 +787,7 @@ void MainWindow::readData()
           }
           break;
         case EM_INS_WRITE:
+          ConsoleReLine();
         case EM_DEL_ADDR2:
           nowExec = EM_END;
           if (nowFile.isOpen()) nowFile.close();
@@ -738,6 +796,7 @@ void MainWindow::readData()
             ErrorMessage("Temporary file cannot open!");
             break;
           }
+          maxProg = nowProg = nowFile.size();
           StartCommand(EM_WRITE);
           break;
       }
@@ -757,9 +816,11 @@ void MainWindow::readData()
          case LM_LIST:
            if (chr != '\n') res_List[res_List.count()-1].append(chr);
            break;
-//         case LM_MESG:
+         case LM_MESG:
+           if (nowConsole >= 2) text.append(chr);
+           break;
          case LM_RES_L:
-           text.append(chr);
+           if (nowConsole >= 1) text.append(chr);
            break;
        }
     }

@@ -34,12 +34,17 @@ Settings::Settings(QSettings* setting, QWidget *parent) :
   ui->cmbFlowControl->addItem(tr("RTS/CTS"), QSerialPort::HardwareControl);
   ui->cmbFlowControl->addItem(tr("XON/XOFF"), QSerialPort::SoftwareControl);
 
+  ui->cmbConsoleLevel->addItem(tr("Silent"), 0);
+  ui->cmbConsoleLevel->addItem(tr("Normal"), 1);
+  ui->cmbConsoleLevel->addItem(tr("Debug"), 2);
+
   nowSettings->beginGroup("SERIAL");
   int setBaudRate = nowSettings->value("BAUD", QSerialPort::Baud9600).toInt();
   int setDataBits = nowSettings->value("BITS", QSerialPort::Data8).toInt();
   int setParity = nowSettings->value("PARITY", QSerialPort::NoParity).toInt();
   int setStopBits = nowSettings->value("STOPBITS", QSerialPort::OneStop).toInt();
   int setFlowControl = nowSettings->value("FLOWCTRL", QSerialPort::NoFlowControl).toInt();
+  int setConsoleLevel = nowSettings->value("CONSOLELEVEL", 1).toInt();
   nowSettings->endGroup();
 
   for (int i = 0; i < ui->cmbBaudRate->count(); i ++) if (ui->cmbBaudRate->itemData(i).toInt() == setBaudRate) ui->cmbBaudRate->setCurrentIndex(i);
@@ -47,6 +52,7 @@ Settings::Settings(QSettings* setting, QWidget *parent) :
   for (int i = 0; i < ui->cmbParity->count(); i ++) if (ui->cmbParity->itemData(i).toInt() == setParity) ui->cmbParity->setCurrentIndex(i);
   for (int i = 0; i < ui->cmbStopBits->count(); i ++) if (ui->cmbStopBits->itemData(i).toInt() == setStopBits) ui->cmbStopBits->setCurrentIndex(i);
   for (int i = 0; i < ui->cmbFlowControl->count(); i ++) if (ui->cmbFlowControl->itemData(i).toInt() == setFlowControl) ui->cmbFlowControl->setCurrentIndex(i);
+  for (int i = 0; i < ui->cmbConsoleLevel->count(); i ++) if (ui->cmbConsoleLevel->itemData(i).toInt() == setConsoleLevel) ui->cmbConsoleLevel->setCurrentIndex(i);
 
   nowSettings->beginGroup("TOOLS");
   ui->txtMML2BIN->setText(nowSettings->value("MML2BIN", "MML2BIN.EXE").toString());
@@ -68,6 +74,7 @@ void Settings::on_buttonBox_accepted()
   nowSettings->setValue("PARITY", ui->cmbParity->currentData().toInt());
   nowSettings->setValue("STOPBITS", ui->cmbStopBits->currentData().toInt());
   nowSettings->setValue("FLOWCTRL", ui->cmbFlowControl->currentData().toInt());
+  nowSettings->setValue("CONSOLELEVEL", ui->cmbConsoleLevel->currentData().toInt());
   nowSettings->endGroup();
 
   nowSettings->beginGroup("TOOLS");
