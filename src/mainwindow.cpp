@@ -64,7 +64,7 @@ QString MainWindow::IntToPercent(int valNow, int valMax)
   if(valPers < 100) buff.append(' ');
   if(valPers < 10) buff.append(' ');
   buff.append(QString::number(valPers));
-  buff.append('\%');
+  buff.append('\x25');
   buff.append(' ');
   if (valNow == 0) timer.start();
   else if (valNow != valMax) {
@@ -405,6 +405,7 @@ void MainWindow::on_btnWrite_clicked()
     if (nowTmp.isOpen()) nowTmp.close();
     nextAddr = nowAddr;
     if (ui->cmbWriteMode->currentIndex() == 1) {
+      //通常書き込み（上書き）の場合
       nowSize =
           QString("0x" + ui->lstFiles->item(ui->lstFiles->count()-1)->data(Qt::ItemDataRole::DisplayRole).toString().left(6)).toInt(0, 16)
           - QString("0x" + ui->lstFiles->item(ui->lstFiles->currentRow() + 1)->data(Qt::ItemDataRole::DisplayRole).toString().left(6)).toInt(0, 16)
@@ -412,20 +413,22 @@ void MainWindow::on_btnWrite_clicked()
       nowAddr = ui->lstFiles->item(ui->lstFiles->currentRow() + 1)->data(Qt::ItemDataRole::DisplayRole).toString().left(6);
       startMode = EM_RES_ADDR;
     } else {
+      //いったん保存する書き込みの場合
       nowSize =
           QString("0x" + ui->lstFiles->item(ui->lstFiles->count()-1)->data(Qt::ItemDataRole::DisplayRole).toString().left(6)).toInt(0, 16)
           - QString("0x" + ui->lstFiles->item(ui->lstFiles->currentRow())->data(Qt::ItemDataRole::DisplayRole).toString().left(6)).toInt(0, 16)
           +1;
       startMode = EM_INS_READ;
+      maxProgR = nowProgR = nowSize;
     }
     lastSize = (nowBank * 0x10000 - 1) - (QString("0x" + nextAddr).toInt(0, 16) + nowSize);
     nowTmp.open();
   }
-  maxProg = nowProg = fileInfo.size();
   if (fileInfo.size() > lastSize) {
     ErrorMessage("Data exceed 0x" + QString::number(nowBank * 0x10000 - 1, 16));
     return;
   }
+  maxProg = nowProg = fileInfo.size();
   StartCommand(startMode);
 }
 
@@ -447,6 +450,7 @@ void MainWindow::on_btnDelete_clicked()
     nowTmp.open();
     nextAddr = nowAddr;
     nowAddr = ui->lstFiles->item(ui->lstFiles->currentRow() + 1)->data(Qt::ItemDataRole::DisplayRole).toString().left(6);
+    maxProgR = nowProgR = nowSize;
     StartCommand(EM_DEL_ADDR);
   }
 }
@@ -612,15 +616,15 @@ void MainWindow::readData()
         case EM_INS_READ:
           buff = (QString("000000") + QString::number(nowSize, 16)).right(6).toLocal8Bit();
           serial->write(buff);
-          text.append("Reading... ");
           break;
         case EM_DEL:
           buff.append("00");
           serial->write(buff);
           text.append("Deleting... ");
           break;
-        case EM_INS_WRITE:
         case EM_WRITE:
+          text.append("TMP ");
+        case EM_INS_WRITE:
           text.append("Writing..." + IntToPercent(maxProg - nowProg, maxProg));
           if(chr == ';') {
             if (nowConsole >= 1) text.append('\n');
@@ -815,6 +819,12 @@ void MainWindow::readData()
            break;
          case LM_LIST:
            if (chr != '\n') res_List[res_List.count()-1].append(chr);
+           //読み込みの場合はここで進捗を更新する
+           else if (nowExec == EM_DEL_READ || nowExec == EM_INS_READ) {
+               ConsoleReLine();
+               text.append("TMP Reading... " + IntToPercent(maxProgR - nowProgR, maxProgR));
+               nowProgR -= 32; //リードモードのサイズ
+           }
            break;
          case LM_MESG:
            if (nowConsole >= 2) text.append(chr);

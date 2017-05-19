@@ -90,6 +90,8 @@ private:
   int      nowConsole;
   int      nowProg;
   int      maxProg;
+  int      nowProgR;
+  int      maxProgR;
   bool     nowConnect;
   bool     nowEEPROM;
   QFile    nowFile;
