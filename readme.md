@@ -1,8 +1,7 @@
 # AVR_MB_Writer
-このプログラムは、[AVR_MusicBox](https://github.com/hiro-otsuka/AVR_MusicBox/) 用のEEPROM・実行モジュールライタGUIです。
+このプログラムは、[AVR_MusicBox](https://github.com/hiro-otsuka/AVR_MusicBox/) 用のEEPROM＆実行モジュール用ライタGUIです。
 AVR_MusicBox とともに公開している [AVR_MB_Writer.ino](https://github.com/hiro-otsuka/AVR_MusicBox/blob/master/tools/AVR_MB_Writer.ino)
-にシリアルポート経由で接続して使用することにより、EEPROMへのファイル書き込み・削除およびATTiny85のFuse設定、実行ファイル書き込みを
-簡単なGUI操作で実行できます。
+にシリアルポート経由で接続して使用することにより、簡単なGUI操作で、EEPROMへのファイル書き込み、削除およびATTiny85のFuse設定、実行ファイル書き込みを実行できます。
 
 # 作者
 (c) 2017 大塚ヒロ <otsuk atmark purple.plala.or.jp>  
@@ -25,16 +24,8 @@ AVR_MusicBox とともに公開している [AVR_MB_Writer.ino](https://github.c
 * Files  
  接続したSerialポートに接続されている AVR_MusicBoxの EEPROM 容量と、ファイルの一覧を取得し、リストに表示します。
 
-* \>\>  
- ファイルの一覧で選択されているEEPROMアドレスを、Addr: に入力します。
- リストの項目を選択することで Addr: に自動入力されるので、通常は使用する必要はありません。
-
-* Addr:  
- Write や Delete の操作を行う対象アドレスです。
- ファイルの一覧からファイルを選択することで自動的に更新されるため、通常は修正する必要はありません。
-
 * Source:  
- BINファイルのもとになる MML ファイルや PRA ファイルを選択します。
+ BINファイルのもとになる MML ファイルや PAR ファイルを選択します。
 
 * Source to BIN  
  MML2BINツールやPAR2BINツールを使って、Sourceファイルをバイナリに変換します。
@@ -50,7 +41,15 @@ AVR_MusicBox とともに公開している [AVR_MB_Writer.ino](https://github.c
  EEPROMに書き込みを行うファイルを選択します。
  標準では、WAVファイルまたはBINファイルが指定可能です。
 
-* Write!(EEPROM)  
+* \>\>  
+ ファイルの一覧で選択されているEEPROMアドレスを、Addr: に入力します。
+ リストの項目を選択することで Addr: に自動入力されるので、通常は使用する必要はありません。
+
+* Addr:  
+ Write や Delete の操作を行う対象アドレスです。
+ ファイルの一覧からファイルを選択することで自動的に更新されるため、通常は修正する必要はありません。
+
+* Write!(I2C EEPROM用)  
  Local File: に指定したファイルを EEPROM に書き込みます。
 
 * Delete!  
@@ -66,18 +65,18 @@ AVR_MusicBox とともに公開している [AVR_MB_Writer.ino](https://github.c
 * ATTiny EEPROM:  
  ATTiny85 の EEPROM に書き込む設定ファイル（バイナリファイル）を選択します。
 
-* Write!(EEPROM)  
+* Write!(AVR EEPROM用)  
  ATTiny EEPROM: に指定したファイルを ATTiny85 の EEPROM に書き込みます。
 
 * ATTiny ELF:  
  ATTiny85 に書き込む ELFファイル（実行モジュール）を選択します。
 
-* Write!(ELF)  
+* Write!(ELF用)  
  ATTiny ELF: に指定したファイルを ATTiny85 のフラッシュメモリに書き込みます。
 
 * ATTiny85 Fuse:  
  ATTiny85 に書き込む Fuse 設定を選択します。
-  Initialize ... AVR_MusicBox に必要な標準的な Fuse を設定します。
+  Initialize ...ATTiny85に対し、AVR_MusicBox に必要な標準 Fuse を設定します。
   RST Enable ... RSTピンを有効（I/Oとして使用不可）に設定します。
   RST Disable ... RSTピンを無効（I/Oとして使用可能）に設定します。
 
@@ -89,6 +88,7 @@ AVR_MusicBox とともに公開している [AVR_MB_Writer.ino](https://github.c
 
 # 変更履歴
 
+* 2017/05/22  ソースコードのコメントや実装を整備して正式にリリース
 * 2017/04/24  AVR_MBの機能変更に伴いツールも変更
 * 2017/03/12  新規公開
 
