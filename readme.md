@@ -9,7 +9,9 @@ AVR_MusicBox とともに公開している [AVR_MB_Writer.ino](https://github.c
 
 # 使用条件
 バイナリファイルを使用する場合は、Windows 32bit または 64bit 版が必要です。
-ソースコードからコンパイルする場合は、Qt でコンパイルできる環境が前提となります。
+また、Visual Studio 2015 の Visual C++ 再頒布可能パッケージをインストールしておく必要があります。
+インストーラは[こちら](https://www.microsoft.com/ja-jp/download/details.aspx?id=48145)からダウンロード可能です。  
+ソースコードからコンパイルする場合は、Qt でコンパイルできる環境が前提となります。  
 
 # 使用方法
 各コマンド（ボタン等）の説明は以下の通りです。

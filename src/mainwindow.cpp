@@ -13,6 +13,7 @@
  *
  * 更新履歴：
  *  2017/05/21 正式版公開(Hiro OTSUKA)
+ *  2017/05/23 構成変更(Hiro OTSUKA) 実行モードの遷移方法などコードを再整理
  *
  */
 
@@ -51,6 +52,30 @@ MainWindow::MainWindow(QSettings* setting, QWidget *parent) :
   //変数（各種モード）を初期化
   nowExec = EM_END;
   nowLine = LM_NONE;
+
+  //ハッシュテーブルを初期化
+  // 単発コマンド群（即時終了）
+  nextExec.insert(EM_VER, EM_END);
+  nextExec.insert(EM_EEPROM, EM_END);
+  nextExec.insert(EM_PROG, EM_END);
+  nextExec.insert(EM_FUSE, EM_END);
+  nextExec.insert(EM_ADDR, EM_END);
+
+  // 連鎖コマンド群
+  nextExec.insert(EM_FILES, EM_ADDR);
+  nextExec.insert(EM_FIND, EM_FILES);
+  nextExec.insert(EM_WRITE, EM_FILES);
+  nextExec.insert(EM_DEL, EM_FILES);
+  nextExec.insert(EM_TMP_WRITE, EM_FILES);
+
+  nextExec.insert(EM_INS_WRITE, EM_TMP_WRITE);
+  nextExec.insert(EM_INS_ADDR, EM_INS_WRITE);
+  nextExec.insert(EM_INS_READ, EM_INS_ADDR);
+  nextExec.insert(EM_RES_ADDR, EM_INS_READ);
+
+  nextExec.insert(EM_DELW_ADDR, EM_TMP_WRITE);
+  nextExec.insert(EM_DEL_READ, EM_DELW_ADDR);
+  nextExec.insert(EM_DELR_ADDR, EM_DEL_READ);
 
   //シリアルポートの表示をリフレッシュ
   on_btnRefresh_clicked();
@@ -168,43 +193,50 @@ void MainWindow::StartCommand(execMode mode)
 {
   QByteArray data;
 
+  //終了の場合は後続処理は不要
+  if (mode == EM_END) {
+    nowExec = mode;
+    nowLine = LM_CMD;
+    CommandRunning(false);
+    return;
+  }
   //指定されたモードごとに、ライタ用コマンドを準備する
   switch(mode) {
-    case EM_VER:	//バージョン表示（接続確認用）
+    case EM_VER:          //バージョン表示（接続確認用）
       data.append('V');
       break;
-    case EM_FIND:	//バンクサイズ取得（EEPROM確認用）
+    case EM_FIND:         //バンクサイズ取得（EEPROM確認用）
       data.append('F');
       break;
-    case EM_FILES:	//ファイル一覧取得
+    case EM_FILES:        //ファイル一覧取得
       data.append('L');
       break;
-    case EM_RES_ADDR:	//更新書き込み時のアドレス指定
-    case EM_INS_ADDR:	//挿入書き込み時のアドレス指定
-    case EM_DELR_ADDR:	//1件削除時の一時読み込み用アドレス指定
-    case EM_DELW_ADDR:	//1件削除時の一時書き込み用アドレス指定
-    case EM_ADDR:	//アドレス選択時のアドレス指定
+    case EM_RES_ADDR:     //更新書き込み時のアドレス指定
+    case EM_INS_ADDR:     //挿入書き込み時のアドレス指定
+    case EM_DELR_ADDR:    //1件削除時の一時読み込み用アドレス指定
+    case EM_DELW_ADDR:    //1件削除時の一時書き込み用アドレス指定
+    case EM_ADDR:         //アドレス選択時のアドレス指定
       data.append('S');
       break;
-    case EM_INS_WRITE:	//挿入書き込み時のHEX転送
-    case EM_TMP_WRITE:	//退避ファイル書き込み時のHEX転送
-    case EM_WRITE:	//単純書き込み時のHEX転送
+    case EM_INS_WRITE:    //挿入書き込み時のHEX転送
+    case EM_TMP_WRITE:    //退避ファイル書き込み時のHEX転送
+    case EM_WRITE:        //単純書き込み時のHEX転送
       data.append('W');
       break;
-    case EM_FUSE:	//Fuse設定
+    case EM_FUSE:         //Fuse設定
       data.append('Z');
       break;
-    case EM_EEPROM:	//内蔵EEPROMの書き込み
+    case EM_EEPROM:       //内蔵EEPROMの書き込み
       data.append('E');
       break;
-    case EM_PROG:	//ファームウェアの書き込み
+    case EM_PROG:         //ファームウェアの書き込み
       data.append('P');
       break;
-    case EM_DEL:	//単純削除
+    case EM_DEL:          //単純削除
       data.append('C');
       break;
-    case EM_INS_READ:	//挿入書き込み時のHEX受信
-    case EM_DEL_READ:	//1件削除時のHEX受信
+    case EM_INS_READ:     //挿入書き込み時のHEX受信
+    case EM_DEL_READ:     //1件削除時のHEX受信
       data.append('R');
       break;
     default:
@@ -647,7 +679,8 @@ void MainWindow::on_btnWrite_clicked()
     return;
   }
 
-  //進捗表示用の変数を設定する
+  //書き込みブロックサイズ、進捗表示用の変数を設定する
+  nowBlock = 32;
   maxProg = nowProg = fileInfo.size();
 
   //ライタにコマンドを発行
@@ -685,8 +718,9 @@ void MainWindow::on_btnDelete_clicked()
         +1;
     nowAddr = ui->lstFiles->item(ui->lstFiles->currentRow() + 1)->data(Qt::ItemDataRole::DisplayRole).toString().left(6);
 
-    //進捗表示（読み込み）用の変数を設定する
-    maxProgR = nowProgR = nowSize;
+    //書き込みブロックサイズ、進捗表示用の変数を設定する
+    nowBlock = 32;
+    maxProg = nowProg = maxProgR = nowProgR = nowSize;
 
     //一時保存用ファイルがオープンされていた場合はクローズし、オープン
     if (nowTmp.isOpen()) nowTmp.close();
@@ -726,7 +760,8 @@ void MainWindow::on_btnEEPROMWrite_clicked()
     return;
   }
 
-  //サイズと、進捗表示用の変数を設定する
+  //書き込みブロックサイズ、応答用サイズ、進捗表示用の変数を設定する
+  nowBlock = 64;
   nowProg = maxProg = nowSize = nowFile.size();
 
   //ライタにコマンドを発行
@@ -783,7 +818,8 @@ void MainWindow::on_btnElfWrite_clicked()
   //プログラムの開始位置にシークする
   nowFile.seek(f_offset);
 
-  //サイズと、進捗表示用の変数を設定する
+  //書き込みブロックサイズ、応答用サイズ、進捗表示用の変数を設定する
+  nowBlock = 64;
   nowProg = maxProg = nowSize = (int)f_size;
 
   //ライタにコマンドを発行
@@ -921,7 +957,7 @@ void MainWindow::readData()
             //途中経過の場合、進捗率を表示する
             ConsoleReLine();
             text.append("TMP Reading... " + IntToPercent(maxProgR - nowProgR, maxProgR));
-            nowProgR -= 32; //リード時の1行サイズ
+            nowProgR -= nowBlock; //リード時の1行サイズ
           }
           break;
         //削除モードの処理 ===============================
@@ -939,34 +975,6 @@ void MainWindow::readData()
         //各種書き込みモードの処理 =========================
         case EM_WRITE:
         case EM_INS_WRITE:
-          //進捗率を表示する
-          text.append("Writing..." + IntToPercent(maxProg - nowProg, maxProg));
-          if(chr == ';') {
-            //途中経過の場合、コンソールレベルにより表示処理を分ける
-            if (nowConsole >= 1) text.append('\n');
-            else ConsoleReLine();
-          }
-          //現在のファイルがオープン状態の場合は処理を行う
-          if (nowFile.isOpen()) {
-            QByteArray tmpdata = nowFile.read(32);
-            if (tmpdata.count() == 0) {
-              //ファイルが終端に達した場合はHEXファイルの終端を入力する
-              buff.append(":00000001FF\n\r");
-              nowFile.close();
-            }
-            else {
-              //それ以外の場合はHEXファイルのデータを入力する
-              buff.append(':');
-              buff.append(IntToHex(tmpdata.count()));
-              buff.append("000000");
-              buff.append(tmpdata.toHex());
-              buff.append("00\n\r");
-              nowProg -= 32;
-            }
-            serial->write(buff);
-          }
-          break;
-        //EEPROMまたはファームウェアの書き込みモードの処理 =========
         case EM_EEPROM:
         case EM_PROG:
           //進捗率を表示する
@@ -978,21 +986,20 @@ void MainWindow::readData()
           }
           //現在のファイルがオープン状態の場合は処理を行う
           if (nowFile.isOpen()) {
-            QByteArray tmpdata = nowFile.read(nowSize >= 64 ? 64 : nowSize);
-            if (nowSize == 0) {
+            QByteArray tmpdata = nowFile.read(nowProg >= nowBlock ? nowBlock : nowProg);
+            if (tmpdata.count() == 0 || nowProg == 0) {
               //ファイルが終端に達した場合はHEXファイルの終端を入力する
               buff.append(":00000001FF\n\r");
               nowFile.close();
             }
             else {
               //それ以外の場合はHEXファイルのデータを入力する
-              nowSize -= tmpdata.count();
+              nowProg -= tmpdata.count();
               buff.append(':');
               buff.append(IntToHex(tmpdata.count()));
               buff.append("000000");
               buff.append(tmpdata.toHex());
               buff.append("00\n\r");
-              nowProg -= 64;
             }
             serial->write(buff);
           }
@@ -1019,41 +1026,28 @@ void MainWindow::readData()
           //得られたバージョン情報をラベルに反映
           nowVer = res_Line;
           ui->lblVersion->setText(nowVer);
-          //処理フローの終了とGUIの復帰
-          nowExec = EM_END;
+          //GUIの制御
           ConnectionSet(true);
+          //フローの遷移
+          StartCommand(nextExec[nowExec]);
           break;
         //バンクサイズ取得モード終了時の処理 ==================
         case EM_FIND:
           //応答行数＝バンク数となるので
-          if (res_List.count() != 0) {
-            //複数行の応答があった場合はバンクサイズを表示
-            nowBank = res_List.count();
-            ui->lblBanks->setText(QString("0x") + QString::number(nowBank, 16) + QString("0000"));
-            //続けてファイル一覧の取得を開始
-            nowExec = EM_END;
-            StartCommand(EM_FILES);
-          }
-          else {
+          if (res_List.count() == 0) {
             //0行の応答だった場合はバンクサイズ無しを表示
             ui->lblBanks->setText("-------");
-            //処理フローの終了とGUIの制御
-            nowExec = EM_END;
+            //GUIの制御
             EEPROMExist(false);
+            //処理フローの終了
+            StartCommand(EM_END);
+            break;
           }
-          break;
-        //単純削除モード終了時の処理 =======================
-        case EM_DEL:
-          //コンソールの初期化とエラー処理
-          ConsoleReLine();
-          //エラー処理が不要なら、続けてファイル一覧の取得を開始
-          nowExec = EM_END;
-          if (res_Line != "OK") {
-            ErrorMessage("Error Response!");
-          }
-          else {
-            StartCommand(EM_FILES);
-          }
+          //複数行の応答があった場合はバンクサイズを表示
+          nowBank = res_List.count();
+          ui->lblBanks->setText(QString("0x") + QString::number(nowBank, 16) + QString("0000"));
+          //フローの遷移
+          StartCommand(nextExec[nowExec]);
           break;
         //ファイル一覧取得モード終了時の処理 ==================
         case EM_FILES:
@@ -1061,81 +1055,41 @@ void MainWindow::readData()
           ui->lstFiles->clear();
           for (int i = 0; i < res_List.count(); i++) ui->lstFiles->addItem(res_List.at(i));
           ui->lstFiles->setCurrentRow(ui->lstFiles->count()-1);
-          //続けてアドレス指を開始
-          nowExec = EM_END;
+          //処理フローの終了（一時）
+          StartCommand(EM_END);
+          //続けてアドレス指定を開始
           on_btnAddr_clicked();
           //GUIを制御
           EEPROMExist(true);
           break;
+        //各種書き込みモードの処理 ==================
+        case EM_TMP_WRITE:
+        case EM_WRITE:
+        case EM_EEPROM:
+        case EM_PROG:
+          //ファイルをクローズする
+          if (nowFile.isOpen()) nowFile.close();
+          //後続と同じ処理を行う
+        //単純削除モード終了時の処理 =======================
+        case EM_DEL:
         //Fuse設定モードの処理 ===========================
         case EM_FUSE:
           //コンソールの初期化
           ConsoleReLine();
           //後続と同じ処理を行う
-        //アドレス選択時のアドレス指定モード終了時の処理 ==========
+        //各種アドレス指定モードの処理 ==========================
+        case EM_DELR_ADDR:
+        case EM_RES_ADDR:
+        case EM_INS_ADDR:
         case EM_ADDR:
           //エラー処理が不要なら処理フローを終了
-          nowExec = EM_END;
           if (res_Line != "OK") {
             ErrorMessage("Error Response!" + res_Line);
+            StartCommand(EM_END);
+            break;
           }
-          break;
-        //一時および単純書き込みモードの処理 ==================
-        case EM_TMP_WRITE:
-        case EM_WRITE:
-          //コンソールの初期化
-          ConsoleReLine();
-          //ファイルをクローズする
-          if (nowFile.isOpen()) nowFile.close();
-          //エラー処理が不要なら、続けてファイル一覧取得処理を開始
-          nowExec = EM_END;
-          if (res_Line != "OK") {
-            ErrorMessage("Error Response!" + res_Line);
-          }
-          else {
-            StartCommand(EM_FILES);
-          }
-          break;
-        //EEPROMまたはファームウェアの書き込みモードの処理 =========
-        case EM_EEPROM:
-        case EM_PROG:
-          //コンソールの初期化
-          ConsoleReLine();
-          //ファイルをクローズする
-          if (nowFile.isOpen()) nowFile.close();
-          //エラー処理が不要なら処理フローを終了
-          nowExec = EM_END;
-          if (res_Line != "OK") {
-            ErrorMessage("Error Response!" + res_Line);
-          }
-          break;
-        //中断モードの処理（エラー時の特殊モード） ================
-        case EM_ABORT:
-          //ファイルをクローズする
-          if (nowFile.isOpen()) nowFile.close();
-          //エラー処理を行う
-          nowExec = EM_END;
-          ErrorMessage(res_Error);
-          //GUIを制御
-          ConnectionSet(false);
-          break;
-        //1件削除時の一時読み込み用アドレス指定モードの処理 =========
-        case EM_DELR_ADDR:
-          //1件削除時のHEX受信モードを開始
-          nowExec = EM_END;
-          StartCommand(EM_DEL_READ);
-          break;
-        //上書き書き込み時のアドレス指定モードの処理 ================
-        case EM_RES_ADDR:
-          //挿入書き込み時のHEX受信モードを開始
-          nowExec = EM_END;
-          StartCommand(EM_INS_READ);
-          break;
-        //挿入書き込み時のアドレス指定モードの処理 =================
-        case EM_INS_ADDR:
-          //挿入書き込みモードを開始
-          nowExec = EM_END;
-          StartCommand(EM_INS_WRITE);
+          //フローの遷移
+          StartCommand(nextExec[nowExec]);
           break;
         //各種読み込み時の処理 ==============================
         case EM_DEL_READ:
@@ -1143,38 +1097,29 @@ void MainWindow::readData()
           //コンソールの初期化
           ConsoleReLine();
           //読み込んだ全データをファイルに書き出し
-          for (int i = 0; i < res_List.count() && nowSize > 0; i++) {
+          for (int i = 0; i < res_List.count(); i++) {
             QByteArray tmpbuff;
             QString tmpstr = res_List.at(i).mid(7);
             for (int j = 0; j < tmpstr.count(); j += 2) {
               tmpbuff.append((char)("0x" + tmpstr.mid(j, 2)).toInt(0, 16));
-              nowSize --;
             }
             nowTmp.write(tmpbuff);
           }
           nowTmp.close();
           //本来の書き込み先のアドレスを復帰する
           nowAddr = nextAddr;
-          //元のモードに従い、
-          if(nowExec == EM_INS_READ) {
-            //挿入書き込み時のHEX受信からは、挿入書き込み時のアドレス指定を開始
-            nowExec = EM_END;
-            StartCommand(EM_INS_ADDR);
-          }
-          else {
-            //1件削除時のHEX受信からは、1件削除時の一時書き込み用アドレス指定を開始
-            nowExec = EM_END;
-            StartCommand(EM_DELW_ADDR);
-          }
+          //フローの遷移
+          StartCommand(nextExec[nowExec]);
           break;
         //挿入書き込み時の処理 ==============================
         case EM_INS_WRITE:
           //コンソールの初期化
           ConsoleReLine();
+          //読み込み時のサイズを進捗率表示用の変数に設定する
+          maxProg = nowProg = maxProgR;
           //後続と同じ処理を行う
         //1件削除時の一時書き込み用アドレス指定時の処理　============
         case EM_DELW_ADDR:
-          nowExec = EM_END;
           //ファイルをクローズする
           if (nowFile.isOpen()) nowFile.close();
           //一時退避したファイルを開く
@@ -1182,18 +1127,24 @@ void MainWindow::readData()
           //エラー処理が不要の場合は、一時書き込みモードを開始
           if (!nowFile.open(QIODevice::ReadOnly)) {
             ErrorMessage("Temporary file cannot open!");
+            StartCommand(EM_END);
+            break;
           }
-          else {
-            //進捗率表示用の変数を設定する
-            maxProg = nowProg = nowFile.size();
-            StartCommand(EM_TMP_WRITE);
-          }
+          //フローの遷移
+          StartCommand(nextExec[nowExec]);
+          break;
+        //中断モードの処理（エラー時の特殊モード） ================
+        case EM_ABORT:
+          //ファイルをクローズする
+          if (nowFile.isOpen()) nowFile.close();
+          //エラー処理を行う
+          ErrorMessage(res_Error);
+          //GUIを制御
+          ConnectionSet(false);
+          //フローの終了
+          StartCommand(EM_END);
           break;
       }
-      //行の状態を初期化
-      nowLine = LM_CMD;
-      //終了状態であれば、GUIの状態を制御
-      if(nowExec == EM_END) CommandRunning(false);
     }
     // それ以外（改行の場合を含む）の場合はモードによってデータを格納
     else {

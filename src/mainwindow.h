@@ -13,6 +13,7 @@
  *
  * 更新履歴：
  *  2017/05/21 正式版公開(Hiro OTSUKA)
+ *  2017/05/23 構成変更(Hiro OTSUKA) 実行モードの遷移方法などコードを再整理
  *
  */
 
@@ -92,6 +93,7 @@ private:
   enum lineMode { //行の状態
     LM_NONE, LM_CMD, LM_RES_1, LM_RES_L, LM_MESG, LM_LIST, LM_ERR
   };
+
   //文字列表示用
   QString IntToHex(int data);
   QString IntToPercent(int valNow, int valMax);
@@ -114,14 +116,16 @@ private:
   //内部変数
   execMode nowExec;     //現在の実行モード
   lineMode nowLine;     //現在の行の状態
+  QHash<execMode, execMode> nextExec;    //次の遷移先モードを保有するハッシュ
 
   QString  nowVer;      //ファームウェアのバージョン
   QString  nowAddr;     //現在処理対象としているEEPROMアドレス
   QString  nextAddr;    //次に処理対象とするEEPROMアドレス
   int      nowFuse;     //現在のFuse設定選択項目
-  int      nowSize;     //現在の読み書き対象サイズ
   int      nowBank;     //現在のEEPROMバンク数
   int      nowConsole;  //現在のコンソール出力レベル
+  int      nowSize;     //現在のサイズ応答用数
+  int      nowBlock;    //現在の書き込みブロックサイズ
   int      nowProg;     //書き込み進捗率表示用の現在値（残サイズ）
   int      maxProg;     //書き込み進捗率表示用の最大値
   int      nowProgR;    //読み込み進捗率表示用の現在値（残サイズ）
