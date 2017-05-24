@@ -14,6 +14,7 @@
  * 更新履歴：
  *  2017/05/21 正式版公開(Hiro OTSUKA)
  *  2017/05/23 構成変更(Hiro OTSUKA) 実行モードの遷移方法などコードを再整理
+ *  2017/05/24 構成変更(Hiro OTSUKA) 各モードの動作を共通化
  *
  */
 
@@ -58,7 +59,6 @@ private slots:
 
   void on_btnConnect_clicked();
   void on_btnFiles_clicked();
-  void on_btnAddr_clicked();
 
   void on_btnWrite_clicked();
   void on_btnDelete_clicked();
@@ -66,8 +66,9 @@ private slots:
   void on_btnElfWrite_clicked();
   void on_btnFuse_clicked();
 
-  void on_txtAddr_editingFinished();
   void on_lstFiles_currentRowChanged(int currentRow);
+  void on_btnAddr_clicked();
+  void on_txtAddr_editingFinished();
 
   //シグナルイベントの定義
   void on_ProcessOut();
@@ -77,14 +78,14 @@ private slots:
 private:
   //内部オブジェクト
   Ui::MainWindow *ui;
-  QSettings* nowSettings;	//iniファイル管理用オブジェクト
-  Settings* setdialog;		//設定ダイアログ
+  QSettings* nowSettings;   //iniファイル管理用オブジェクト
+  Settings* setdialog;      //設定ダイアログ
 
-  QSerialPort *serial;		//シリアルポート管理
-  QProcess* nowProc;		//ツールのサブプロセス
-  QProcess* nowEditor;		//テキストエディタ
-  QElapsedTimer timer;		//タイマー（残り時間表示用）
-  QTemporaryFile  nowTmp;	//一時ファイル（EEPROM読み込み用）
+  QSerialPort *serial;      //シリアルポート管理
+  QProcess* nowProc;        //ツールのサブプロセス
+  QProcess* nowEditor;      //テキストエディタ
+  QElapsedTimer timer;      //タイマー（残り時間表示用）
+  QTemporaryFile  nowTmp;   //一時ファイル（EEPROM読み込み用）
 
   //各種ステータス管理
   enum execMode { //実行モード
@@ -125,7 +126,7 @@ private:
   int      nowBank;     //現在のEEPROMバンク数
   int      nowConsole;  //現在のコンソール出力レベル
   int      nowSize;     //現在のサイズ応答用数
-  int      nowBlock;    //現在の書き込みブロックサイズ
+  int      nowBlock;    //現在の読み書きブロックサイズ
   int      nowProg;     //書き込み進捗率表示用の現在値（残サイズ）
   int      maxProg;     //書き込み進捗率表示用の最大値
   int      nowProgR;    //読み込み進捗率表示用の現在値（残サイズ）
